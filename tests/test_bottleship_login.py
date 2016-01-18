@@ -382,6 +382,10 @@ class TestBottleshipLogin(unittest.TestCase):
 
     def test_login_newip_default(self):
         name = self.id()
+
+        bottle.request.environ['REMOTE_ADDR'] = '127.0.0.1'
+        self.assertEqual(bottle.request.environ['REMOTE_ADDR'], '127.0.0.1')
+
         res = self.app.register(username=name)
         self.assertEqual(res.status_code, 200)
 
@@ -391,9 +395,16 @@ class TestBottleshipLogin(unittest.TestCase):
         res = self.app.login(username=name)
         self.assertEqual(res.status_code, 200)
 
+        bottle.request.environ['REMOTE_ADDR'] = '127.0.0.1'
+        self.assertEqual(bottle.request.environ['REMOTE_ADDR'], '127.0.0.1')
+
     def test_login_newip_plaintext(self):
         name = self.id()
         req = {'SecurityLevel': 'plaintext'}
+
+        bottle.request.environ['REMOTE_ADDR'] = '127.0.0.1'
+        self.assertEqual(bottle.request.environ['REMOTE_ADDR'], '127.0.0.1')
+
         res = self.app.register(username=name, user_info=req)
         self.assertEqual(res.status_code, 200)
 
@@ -403,9 +414,16 @@ class TestBottleshipLogin(unittest.TestCase):
         res = self.app.login(username=name)
         self.assertEqual(res.status_code, 200)
 
+        bottle.request.environ['REMOTE_ADDR'] = '127.0.0.1'
+        self.assertEqual(bottle.request.environ['REMOTE_ADDR'], '127.0.0.1')
+
     def test_login_newip_ipaddr(self):
         name = self.id()
         req = {'SecurityLevel':'plaintext+ipaddr'}
+
+        bottle.request.environ['REMOTE_ADDR'] = '127.0.0.1'
+        self.assertEqual(bottle.request.environ['REMOTE_ADDR'], '127.0.0.1')
+
         res = self.app.register(username=name, user_info=req)
         self.assertEqual(res.status_code, 200)
 
@@ -415,11 +433,18 @@ class TestBottleshipLogin(unittest.TestCase):
         res = self.app.login(username=name)
         self.assertEqual(res.status_code, 403)
 
+        bottle.request.environ['REMOTE_ADDR'] = '127.0.0.1'
+        self.assertEqual(bottle.request.environ['REMOTE_ADDR'], '127.0.0.1')
+
     def test_login_newip_hmac(self):
         name = self.id()
         password = ''
         key = '1234'
         data = {'Username': name, 'SecurityLevel': 'hmac'}
+
+        bottle.request.environ['REMOTE_ADDR'] = '127.0.0.1'
+        self.assertEqual(bottle.request.environ['REMOTE_ADDR'], '127.0.0.1')
+
         user_info = self.register_hmac(data, key)
         self.assertEqual(user_info.get('SecurityLevel'), data.get('SecurityLevel'))
 
@@ -436,12 +461,19 @@ class TestBottleshipLogin(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(json.loads(res.body).get('SecurityLevel'), req.get('SecurityLevel'))
 
+        bottle.request.environ['REMOTE_ADDR'] = '127.0.0.1'
+        self.assertEqual(bottle.request.environ['REMOTE_ADDR'], '127.0.0.1')
+
 
     def test_login_newip_hmac_ipaddr(self):
         name = self.id()
         password = ''
         key = '1234'
         data = {'Username': name, 'SecurityLevel': 'hmac+ipaddr'}
+
+        bottle.request.environ['REMOTE_ADDR'] = '127.0.0.1'
+        self.assertEqual(bottle.request.environ['REMOTE_ADDR'], '127.0.0.1')
+
         user_info = self.register_hmac(data, key)
         self.assertEqual(user_info.get('SecurityLevel'), data.get('SecurityLevel'))
 
@@ -464,6 +496,9 @@ class TestBottleshipLogin(unittest.TestCase):
         res = self.app.login(username=name, _request_fallback=req)
         self.assertEqual(res.status_code, 403)
         self.assertFalse(bottleship.data_is_encoded(res.body))
+
+        bottle.request.environ['REMOTE_ADDR'] = '127.0.0.1'
+        self.assertEqual(bottle.request.environ['REMOTE_ADDR'], '127.0.0.1')
 
 
 if __name__ == '__main__':
