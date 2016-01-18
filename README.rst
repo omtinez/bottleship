@@ -9,9 +9,8 @@ BottleShip
         :target: https://travis-ci.org/omtinez/bottleship
 
 .. image:: https://readthedocs.org/projects/bottleship/badge/?version=latest
-        :target: https://readthedocs.org/projects/bottleship/?badge=latest
+        :target: http://bottleship.readthedocs.org/en/latest/?badge=latest
         :alt: Documentation Status
-
 
 Authentication for the Bottle web framework made simple.
 

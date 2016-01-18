@@ -16,9 +16,19 @@ import bottle
 from pddb import PandasDatabase
 
 
+# Python 2 vs 3 compatibility crap
 def tob(s, enc='utf8'):
-    strtype = str if sys.version_info >= (3, 0, 0) else unicode
-    return s.encode(enc) if isinstance(s, strtype) else bytes(s)
+    if sys.version_info >= (3, 0, 0) and isinstance(s, str):
+        s = s.encode(enc)
+    elif sys.version_info < (3, 0, 0) and isinstance(s, unicode):
+        s = s.encode(enc)
+    return s
+def tos(s, enc='utf8'):
+    if sys.version_info >= (3, 0, 0) and isinstance(s, bytes):
+        s = s.decode(enc)
+    elif sys.version_info < (3, 0, 0) and isinstance(s, unicode):
+        s = s.encode(enc)
+    return s
 
 def _lscmp(a, b):
     ''' Compares two strings in a cryptographically safe way:
@@ -39,12 +49,13 @@ def data_decode(data, key, digestmod=None):
     if data_is_encoded(data):
         sig, data = data.split(tob('?'), 1)
         if _lscmp(sig[1:], base64.b64encode(hmac.new(key, data, digestmod=digestmod).digest())):
-            return base64.b64decode(data)
+            return tos(base64.b64decode(data))
     return None
 
 def data_is_encoded(data):
     ''' Return True if the argument looks like a encoded cookie.'''
-    return bool(data.startswith(tob('!')) and tob('?') in data)
+    datab = tob(data)
+    return bool(datab.startswith(tob('!')) and tob('?') in datab)
 
 
 class BottleShip(bottle.Bottle):
@@ -212,7 +223,7 @@ class BottleShip(bottle.Bottle):
         # Attempt to parse the data into a dictionary and return it
         data_dict = None
         try:
-            data_dict = json.loads(data_json.decode('string-escape').strip('"'))
+            data_dict = json.loads(tob(data_json).decode('unicode_escape').strip('"'))
             data_dict['Key'] = user_key
         except TypeError:
             err_msg = ('Security error: Provided data was corrupted and could not be parsed as a '
@@ -230,11 +241,39 @@ class BottleShip(bottle.Bottle):
 
         # Make sure that username and password are of the correct type
         if not isinstance(username, str) or not isinstance(password, str):
-            print(type(username))
             return 'Credential error: Parameters "username" and "password" must be of type "str".'
 
     def key_exchange(self, security_level, user_key):
         '''
+        Exchange keys with client.
+
+        Parameters
+        ----------
+        security_level : str
+            Security level will determine the type of encryption/signing to be performed on the
+            data as well as the type of keys being exchanged. Must be either ``hmac`` or ``rsa``.
+        user_key : str
+            String representation of the key from the client. If ``hmac`` this will be the secret
+            key used to sign data between client and server; if ``rsa`` this will be the client\'s
+            public key.
+
+        Returns
+        -------
+        response : bottle.HTTPResponse
+            Status code and body will determine if the key exchange was successful. If successful,
+            the body will contain the single-use token that the client must present along with the
+            encoded data. If the security level is ``rsa``, it will also contain the server\'s
+            public key.
+
+        Examples
+        --------
+        >>> app = BottleShip()
+        >>> res = app.key_exchange('hmac', '5f04ee43-83bb-46c0-96aa-65a2c5').body
+        >>> res
+            b'!RWEEi79yWn5BEcse1bmDBBswlcIY2P817ibkZ4UY/kU=?eyJUb2tlbiI6ICI3YTNmMWRlYS0zOGE1LTQ2ODA
+            tOTU0Zi1iMjA1OTQwMmVlZGUifQ=='
+        >>> bottleship.data_decode(res, '5f04ee43-83bb-46c0-96aa-65a2c5')
+            '{"Token": "ce045d43-4e42-4531-9370-8928598b6e26"}'
         '''
         token_json = None
         server_key = None
@@ -315,8 +354,8 @@ class BottleShip(bottle.Bottle):
                 return bottle.HTTPResponse(status=400, body=err_msg)
 
         # Cleanup information from the request
-        request_dict = {tob(req_k): tob(req_v) for req_k, req_v in request_dict.items()
-                        if re.match(PandasDatabase._colname_rgx, tob(req_k))}
+        request_dict = {tos(req_k): tos(req_v) for req_k, req_v in request_dict.items()
+                        if re.match(PandasDatabase._colname_rgx, tos(req_k))}
 
         # Verify username and password
         username = username or request_dict.get('Username')
@@ -416,8 +455,8 @@ class BottleShip(bottle.Bottle):
                 return bottle.HTTPResponse(status=400, body=err_msg)
 
         # Cleanup information from the request
-        request_dict = {tob(req_k): tob(req_v) for req_k, req_v in request_dict.items()
-                        if re.match(PandasDatabase._colname_rgx, tob(req_k))}
+        request_dict = {tos(req_k): tos(req_v) for req_k, req_v in request_dict.items()
+                        if re.match(PandasDatabase._colname_rgx, tos(req_k))}
 
         # Verify username and password
         username = username or request_dict.get('Username')

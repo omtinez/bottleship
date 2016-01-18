@@ -48,7 +48,7 @@ class TestBottleshipLogin(unittest.TestCase):
         res = self.app.key_exchange('hmac', key)
         self.assertEqual(res.status_code, 200)
         self.assertTrue(bottleship.data_is_encoded(res.body))
-        token = str(json.loads(bottleship.data_decode(res.body, key)).get('Token'))
+        token = json.loads(bottleship.data_decode(res.body, key)).get('Token')
 
         user_info = user_info if isinstance(user_info, str) else json.dumps(user_info)
         req = {'Data': bottleship.data_encode(json.dumps(user_info), key), 'Token': token}
