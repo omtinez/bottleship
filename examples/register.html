@@ -1,0 +1,192 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>Register</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+</head>
+<body>
+    <div class="row" style="padding:10px">
+
+        <div class="col-md-4">
+            <div id="bottleship-register-form-wrapper">
+                <h3>Register</h3>
+                <form id="bottleship-register-form-element" action="/" method="post">
+                    <div class="form-group" id="bottleship-register-form-group">
+                        <label for="bottleship-register-form-username">Username</label>
+                        <input type="text" class="form-control" name="bottleship-register-form-username" id="bottleship-register-form-username" placeholder="Username" />
+                        <label for="bottleship-register-form-password" style="margin-top:5px;">Password</label>
+                        <input type="password" class="form-control" name="bottleship-register-form-password" id="bottleship-register-form-password" placeholder="Password" />
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-default" disabled>Submit</button>
+                    </div>
+
+                    <script id="bottleship-register-form-form-script" type="text/javascript">
+                        (function (formElem) {
+
+                            // Override the form submit action
+                            formElem.on('submit', function (e) {
+                                e.preventDefault();
+
+                                var username = formElem.find('#bottleship-register-form-username').val();
+                                var password = formElem.find('#bottleship-register-form-password').val();
+                                console.log('Register user ' + username);
+
+                                $.post("/register", { 'Username': username, 'Password': password }, function (data) {
+                                    data = JSON.parse(data);
+                                    console.log('Result: Success');
+                                    formElem.find('#bottleship-register-form-username').val('');
+                                    formElem.find('#bottleship-register-form-password').val('');
+                                }).fail(function (xhr, textStatus, errorThrown) {
+                                    console.log('Result: ' + xhr.statusText + '. ' + xhr.responseText);
+                                })
+
+                                return false;
+                            });
+
+                            // Enable submit button only when all mandatory fields are set
+                            var mandatoryFields = [].concat(
+                                formElem.find('#bottleship-register-form-username'),
+                                formElem.find('#bottleship-register-form-password'));
+                            mandatoryFields.forEach(function (field) {
+                                field.on('change keydown paste input', function () {
+                                    var allset = true;
+                                    for (var i = 0; i < mandatoryFields.length; i++) {
+                                        if (!mandatoryFields[i].val()) {
+                                            allset = false;
+                                            break;
+                                        }
+                                    }
+                                    if (allset) {
+                                        formElem.find('button[type="submit"]').prop('disabled', false);
+                                    }
+                                });
+                            });
+                        })($('#bottleship-register-form-element'));
+                    </script>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div id="bottleship-login-form-wrapper">
+                <h3>Login</h3>
+                <form id="bottleship-login-form-element" action="/" method="post">
+                    <div class="form-group" id="bottleship-login-form-group">
+                        <label for="bottleship-login-form-username">Username</label>
+                        <input type="text" class="form-control" name="bottleship-login-form-username" id="bottleship-login-form-username" placeholder="Username" />
+                        <label for="bottleship-login-form-password" style="margin-top:5px;">Password</label>
+                        <input type="password" class="form-control" name="bottleship-login-form-password" id="bottleship-login-form-password" placeholder="Password" />
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-default" disabled>Submit</button>
+                    </div>
+
+                    <script id="bottleship-login-form-form-script" type="text/javascript">
+                        (function (formElem) {
+
+                            // Override the form submit action
+                            formElem.on('submit', function (e) {
+                                e.preventDefault();
+
+                                var username = formElem.find('#bottleship-login-form-username').val();
+                                var password = formElem.find('#bottleship-login-form-password').val();
+                                console.log('Register user ' + username);
+
+                                $.post("/login", { 'Username': username, 'Password': password }, function (data) {
+                                    data = JSON.parse(data);
+                                    console.log('Result: Success');
+                                    console.log('Token: ' + data['Token']);
+                                    formElem.find('#bottleship-login-form-username').val('');
+                                    formElem.find('#bottleship-login-form-password').val('');
+                                }).fail(function (xhr, textStatus, errorThrown) {
+                                    console.log('Result: ' + xhr.statusText + '. ' + xhr.responseText);
+                                })
+
+                                return false;
+                            });
+
+                            // Enable submit button only when all mandatory fields are set
+                            var mandatoryFields = [].concat(
+                                formElem.find('#bottleship-login-form-username'),
+                                formElem.find('#bottleship-login-form-password'));
+                            mandatoryFields.forEach(function (field) {
+                                field.on('change keydown paste input', function () {
+                                    var allset = true;
+                                    for (var i = 0; i < mandatoryFields.length; i++) {
+                                        if (!mandatoryFields[i].val()) {
+                                            allset = false;
+                                            break;
+                                        }
+                                    }
+                                    if (allset) {
+                                        formElem.find('button[type="submit"]').prop('disabled', false);
+                                    }
+                                });
+                            });
+                        })($('#bottleship-login-form-element'));
+                    </script>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div id="bottleship-testapi-form-wrapper">
+                <h3>Test API</h3>
+                <form id="bottleship-testapi-form-element" action="/" method="post">
+                    <div class="form-group" id="bottleship-testapi-form-group">
+                        <label for="bottleship-testapi-form-endpoint">API</label>
+                        <input type="text" class="form-control" name="bottleship-testapi-form-endpoint" id="bottleship-testapi-form-endpoint" placeholder="Endpoint" />
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-default" disabled>Submit</button>
+                    </div>
+
+                    <script id="bottleship-testapi-form-form-script" type="text/javascript">
+                        (function (formElem) {
+
+                            // Override the form submit action
+                            formElem.on('submit', function (e) {
+                                e.preventDefault();
+
+                                var endpoint = formElem.find('#bottleship-testapi-form-endpoint').val();
+                                console.log('Testing endpoint ' + endpoint);
+
+                                $.get(endpoint, function (data) {
+                                    console.log('Result: Success');
+                                    console.log('Data: ' + data);
+                                    formElem.find('#bottleship-testapi-form-endpoint').val('');
+                                }).fail(function (xhr, textStatus, errorThrown) {
+                                    console.log('Result: ' + xhr.statusText + '. ' + xhr.responseText);
+                                })
+
+                                return false;
+                            });
+
+                            // Enable submit button only when all mandatory fields are set
+                            var mandatoryFields = [].concat(
+                                formElem.find('#bottleship-testapi-form-endpoint'));
+                            mandatoryFields.forEach(function (field) {
+                                field.on('change keydown paste input', function () {
+                                    var allset = true;
+                                    for (var i = 0; i < mandatoryFields.length; i++) {
+                                        if (!mandatoryFields[i].val()) {
+                                            allset = false;
+                                            break;
+                                        }
+                                    }
+                                    if (allset) {
+                                        formElem.find('button[type="submit"]').prop('disabled', false);
+                                    }
+                                });
+                            });
+                        })($('#bottleship-testapi-form-element'));
+                    </script>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
