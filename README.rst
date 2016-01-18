@@ -106,6 +106,61 @@ If the login was successful, the user can now make the following request:
 
 If everything worked, the user will receive ``Hello, john!``.
 
+Routes
+------
+
+BottleShip\'s ``require_auth`` method has nearly identical signature compared to Bottle\'s
+``route``. The main difference is that, instead of a single ``callback`` parameter, it has two:
+
+* ``callback_success``. Optional; roughly equivalent to Bottle\'s ``callback``. When not set,
+  defaults to sending a request back to the user with the status code of ``200`` and body ``OK``.
+* ``callback_failure``. Optional; when not set, defaults to sending a request back to the user with
+  status code of ``403`` and body containing more details about the failure (but no stack trace).
+
+Like Bottle\'s ``route`` method, ``require_auth`` can be used both as a regular function that takes
+callable objects parameters for ``callback_success`` and ``callback_failure``, or as a decorator to
+wrap the function ``callback_success``.
+
+For applications intended for web browsers that can rely on cookies for session tokens, this
+function is essentially a drop-in replacement for Bottle\'s ``route``. For example, the following
+snippet:
+
+.. code:: python
+
+    app = Bottle()
+    @app.route('/hello/<name>')
+    def hello(name):
+        return 'Hello, %s!' % name
+
+Becomes this:
+
+.. code:: python
+
+    app = BottleShip()
+    @app.require_auth('/hello/<name>')
+    def hello(name):
+        return 'Hello, %s!' % name
+
+For convenience, and to avoid interfacing with the underlying data about the users at more than one
+layer in the application, routes can receive a copy of the record representing a user by adding a
+parameter named ``bottleship_user_record`` to the function\'s signature. The information will be
+represented as a ``dict`` and contains:
+
+* ``Username``
+* ``Password``, if any (hashed)
+* ``__id__``, used internally by the database engine
+* ``RemoteIpAddr``
+* Any other information added by the client during registration or login as part of the request
+
+Then, the previous example can be simplified further and changed to:
+
+.. code:: python
+
+    app = BottleShip()
+    @app.require_auth('/hello')
+    def hello(bottleship_user_record):
+        return 'Hello, %s!' % bottleship_user_record.get('Username')
+
 Security
 --------
 
