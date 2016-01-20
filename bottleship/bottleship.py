@@ -16,7 +16,7 @@ import bottle
 from pddb import PandasDatabase
 
 
-# Python 2 vs 3 compatibility crap
+# Python 2.x vs 3.x compatibility
 def tob(s, enc='utf8'):
     if sys.version_info >= (3, 0, 0) and isinstance(s, str):
         s = s.encode(enc)
@@ -164,10 +164,10 @@ class BottleShip(bottle.Bottle):
         # Set expiration time, username, etc.
         token_record = {
             'Token': token,
-            'Expiry': time.time() + self._token_lifetime_seconds,
+            'Expiry': str(time.time() + self._token_lifetime_seconds),
             'Username': username,
             'SecurityLevel': security_level,
-            'Key': key,
+            'Key': key or '',
         }
         token_record = self.pddb.insert('bottleship_tokens', record=token_record, astype='dict')
         return token_record
@@ -389,7 +389,7 @@ class BottleShip(bottle.Bottle):
             return res
 
         # Get user's IP address from request
-        request_dict['RemoteIpAddr'] = bottle.request.environ.get('REMOTE_ADDR')
+        request_dict['RemoteIpAddr'] = bottle.request.environ.get('REMOTE_ADDR', '')
 
         # Insert the hashed password into user's record
         if password is not None:
@@ -403,6 +403,7 @@ class BottleShip(bottle.Bottle):
 
         # Insert or update the user record
         user_cond = {'Username': username}
+        print(request_dict)
         user_record = self.pddb.upsert('bottleship_users', record=request_dict, 
                                        where=user_cond, astype='dict')[0]
 
@@ -501,7 +502,7 @@ class BottleShip(bottle.Bottle):
             return bottle.HTTPResponse(status=403, body=msg)
 
         # Get user's IP address from request
-        ip_addr = bottle.request.environ.get('REMOTE_ADDR')
+        ip_addr = bottle.request.environ.get('REMOTE_ADDR', '')
         if ip_addr != user_record.get('RemoteIpAddr'):
             if 'ipaddr' in security_level:
                 msg = 'Login error: Registration IP address does not match login attempt.'

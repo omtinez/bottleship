@@ -12,3 +12,9 @@ History
 
 * Fixed Python 2 vs 3 compatibility.
 * Updated documentation and setup TravisCI
+
+0.2.1 (2016-01-19)
+------------------
+
+* Update interface with pddb
+* Fix line endings
