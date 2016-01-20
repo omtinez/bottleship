@@ -558,7 +558,7 @@ class BottleShip(bottle.Bottle):
         # Validate the provided token against the token store
         token_record = self.pddb.find_one(
             'bottleship_tokens', where={'Token': token}, astype='dict')
-        if not token_record or time.time() > token_record.get('Expiry', 0):
+        if not token_record or time.time() > float(token_record.get('Expiry', '0')):
             msg = 'Auth error: Provided token does not exist or has expired.'
             self._print(msg)
             return callback_failure(403, msg)
