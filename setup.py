@@ -24,7 +24,7 @@ test_requirements = [
 
 setup(
     name='bottleship',
-    version='0.2.1',
+    version='0.2.2',
     description="Authentication for the Bottle web framework meant for very simple workflows and little-to-none user interaction",
     long_description=readme + '\n\n' + history,
     author="Oscar Martinez",
