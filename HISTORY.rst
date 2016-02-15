@@ -18,3 +18,9 @@ History
 
 * Update interface with pddb
 * Fix line endings
+
+0.2.2 (2016-02-14)
+------------------
+
+* Added logout() function and corresponding documentation
+* Updated example html file

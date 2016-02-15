@@ -57,6 +57,10 @@ def data_is_encoded(data):
     datab = tob(data)
     return bool(datab.startswith(tob('!')) and tob('?') in datab)
 
+# Copy helper methods from bottle module
+static_file = bottle.static_file
+redirect = bottle.redirect
+parse_auth = bottle.parse_auth
 
 class BottleShip(bottle.Bottle):
     '''
@@ -124,8 +128,8 @@ class BottleShip(bottle.Bottle):
                 from cryptography.hazmat.primitives.serialization import load_pem_public_key
             except ImportError:
                 self._print('RSA is not supported in this system because the cryptography module '
-                            'is not installed. To install it, you can run `pip install '
-                            'cryptography`. RSA encryption has been disabled for this isntance.')
+                            'is not installed. To install it, you can run `$ pip install '
+                            'cryptography`. RSA encryption has been disabled for this instance.')
                 self.allowed_security = [sec for sec in self.allowed_security if 'rsa' not in sec]
             
             self._rsakey_private = rsa.generate_private_key(
@@ -142,11 +146,20 @@ class BottleShip(bottle.Bottle):
 
         for cond in cond_keys:
             #self.pddb._regex_type TODO
-            if (cond in self._whitelist_cond and \
-                user_record.get(cond) != self._whitelist_cond[cond]) or \
-                (cond in self._blacklist_cond and \
-                user_record.get(cond) == self._blacklist_cond[cond]):
-                return False
+
+            if cond in self._whitelist_cond:
+                whitelist_cond = self._whitelist_cond[cond]
+                if not isinstance(whitelist_cond, (list, tuple)):
+                    whitelist_cond = (whitelist_cond,)
+                if any([user_record.get(cond) != wc for wc in whitelist_cond]):
+                    return False
+
+            if cond in self._blacklist_cond:
+                blacklist_cond = self._blacklist_cond[cond]
+                if not isinstance(blacklist_cond, (list, tuple)):
+                    blacklist_cond = (blacklist_cond,)
+                if any([user_record.get(cond) == bc for bc in blacklist_cond]):
+                    return False
 
         return True
 
@@ -360,12 +373,15 @@ class BottleShip(bottle.Bottle):
         # Verify username and password
         username = username or request_dict.get('Username')
         password = password or request_dict.get('Password', '')
+        auth_header = bottle.request.get_header('Authorization')
+        if auth_header: # If auth is available in the headers, take that
+            username, password = parse_auth(auth_header)
         error_msg = self._error_username_password(username, password)
         if error_msg:
             self._print(error_msg)
             return bottle.HTTPResponse(status=400, body=error_msg)
 
-        # Look for existing user record and, if any, verify that password matches
+        # Look for existing user record and, if any, reject registration
         user_record = self.pddb.find_one(
             'bottleship_users', where={'Username': username}, astype='dict')
         if user_record:
@@ -462,6 +478,9 @@ class BottleShip(bottle.Bottle):
         # Verify username and password
         username = username or request_dict.get('Username')
         password = password or request_dict.get('Password', '')
+        auth_header = bottle.request.get_header('Authorization')
+        if auth_header: # If auth is available in the headers, take that
+            username, password = parse_auth(auth_header)
         error_msg = self._error_username_password(username, password)
         if error_msg:
             self._print(error_msg)
@@ -527,7 +546,57 @@ class BottleShip(bottle.Bottle):
         user_record_json = self._dump_user_record(security_level, user_record)
 
         res = bottle.HTTPResponse(status=200, body=user_record_json)
-        res.set_cookie('Token', token_record['Token'], path='/')
+        res.set_cookie('Token', token_record['Token'], path='/', expires=int(float(token_record.get('Expiry'))))
+        return res
+
+    def logout(self, token=None, cookie_only=True, _request_fallback=None):
+        '''
+        Expire a given token immediately.
+
+        Parameters
+        ----------
+        token : str
+            Token to immediately expire. This will be retrieved from the header cookies or from the
+            request depending on the value of parameter `cookie_only`.
+        cookie_only : bool
+            If true, only retrieve Token from the header cookies. This is to prevent malicious
+            users to log out other users; if this method is exposed in the application\'s API, this
+            parameter should always be True (which is the default behavior).
+        _request_fallback : dict
+            Used for testing purposes.
+            The parameter `Token` can also be passed to this method as items in the
+            `_request_fallback` dictionary.
+        '''
+
+        # Try to retrieve the token from the cookies first
+        token_cookie = bottle.request.get_cookie('Token')
+
+        # If no token was found, retrieve it from the request data
+        if not token_cookie and not cookie_only:
+            request_dict = PandasDatabase._request(bottle.request, request_fallback=_request_fallback)
+            token = token or request_dict.get('Token')
+        else:
+            token = str(token_cookie)
+
+        # Verify that the token is provided in the request
+        if token is None:
+            msg = 'Auth error: "Token" field must be present as part of the request.'
+            self._print(msg)
+            return bottle.HTTPResponse(status=400, body=msg)
+
+        # Validate the provided token against the token store
+        token_record = self.pddb.find_one(
+            'bottleship_tokens', where={'Token': token}, astype='dict')
+        if not token_record or time.time() > float(token_record.get('Expiry', '0')):
+            msg = 'Auth error: Provided token does not exist or has expired.'
+            self._print(msg)
+            return bottle.HTTPResponse(status=400, body=msg)
+
+        # Expire token record in the database
+        self.pddb.upsert('bottleship_tokens', where={'Token': token}, record={'Expiry': '0'})
+
+        res = bottle.HTTPResponse(status=200, body='OK')
+        res.set_cookie('Token', '', path='/', expires=0)
         return res
 
     def _authenticate(self, callback_success=None, callback_failure=None, token=None,
@@ -639,29 +708,30 @@ def main(args):
     args = parser.parse_args(args)
 
     bs = BottleShip()
-    bs.route('/', callback=lambda: bottle.static_file('register.html', root='examples'))
+    bs.route('/', callback=lambda: static_file('login.html', root='examples'))
     
     bs.route('/register', method=('GET', 'POST'), callback=bs.register)
     bs.route('/login', method=('GET', 'POST'), callback=bs.login)
+    bs.route('/logout', method=('GET', 'POST'), callback=bs.logout)
     bs.route(
         '/swapkeys/<security_level>/<user_key>', method=('GET', 'POST'), callback=bs.key_exchange)
 
     # Test API route using default callback
-    bs.require_auth('/testapi1', method=('GET', 'POST'), callback_success=False)
+    bs.require_auth('/test', method=('GET', 'POST'), callback_success=False)
 
     # Test API route using decorator
-    @bs.require_auth('/testapi2/<name>', method=('GET', 'POST'))
+    @bs.require_auth('/hello/<name>', method=('GET', 'POST'))
     def testapi2(name):
         return 'Hello, %s!' % name
 
     # Test API route using bottleship_user_record parameter
-    bs.require_auth('/testapi3', method=('GET', 'POST'), callback_success=\
+    bs.require_auth('/hellome', method=('GET', 'POST'), callback_success=\
         lambda bottleship_user_record: 'Hello, %s!' % bottleship_user_record.get('Username'))
 
     # Test API route using bottleship_user_record parameter and decorator
-    @bs.require_auth('/testapi4', method=('GET', 'POST'))
+    @bs.require_auth('/whoami', method=('GET', 'POST'))
     def testapi4(bottleship_user_record):
-        return 'Hello, %s!' % bottleship_user_record.get('Username')
+        return '%s' % bottleship_user_record
 
     try:
         bs.run(host='0.0.0.0', port=args.port, debug=True)
