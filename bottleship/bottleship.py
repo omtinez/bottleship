@@ -57,10 +57,12 @@ def data_is_encoded(data):
     datab = tob(data)
     return bool(datab.startswith(tob('!')) and tob('?') in datab)
 
-# Copy helper methods from bottle module
+# Copy helper methods and globals from bottle module
 static_file = bottle.static_file
 redirect = bottle.redirect
 parse_auth = bottle.parse_auth
+request = bottle.request
+HTTPResponse = bottle.HTTPResponse
 
 class BottleShip(bottle.Bottle):
     '''
@@ -182,6 +184,7 @@ class BottleShip(bottle.Bottle):
             'SecurityLevel': security_level,
             'Key': key or '',
         }
+        print(token_record)
         token_record = self.pddb.insert('bottleship_tokens', record=token_record, astype='dict')
         return token_record
 
@@ -419,7 +422,6 @@ class BottleShip(bottle.Bottle):
 
         # Insert or update the user record
         user_cond = {'Username': username}
-        print(request_dict)
         user_record = self.pddb.upsert('bottleship_users', record=request_dict, 
                                        where=user_cond, astype='dict')[0]
 
@@ -531,7 +533,7 @@ class BottleShip(bottle.Bottle):
                 user_record['RemoteIpAddr'] = ip_addr
 
         # Provide user with a temporary token
-        token_key = request_dict.get('Key') if secure_data else user_record.get('Key')
+        token_key = str(request_dict.get('Key') if secure_data else user_record.get('Key'))
         token_record = self._gen_token(username, security_level=security_level, key=token_key)
         user_record['Token'] = token_record['Token']
 
@@ -698,6 +700,8 @@ class BottleShip(bottle.Bottle):
             route_do = lambda **kwargs: self._authenticate(
                 callback_success=callback, callback_failure=callback_failure, **kwargs)
             return self.route(path, method, route_do, name, apply, skip, **config)
+        if not callback_success and 'callback' in kwargs.keys():
+            callback_success = kwargs.get('callback')
         return decorator(callback_success) if callback_success is not None else decorator
 
 def main(args):
