@@ -24,3 +24,9 @@ History
 
 * Added logout() function and corresponding documentation
 * Updated example html file
+
+0.2.3 (2016-02-15)
+------------------
+
+* Added logout() tests
+* Added callback_success fallback for callback parameter in require_auth()

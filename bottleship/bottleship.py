@@ -696,12 +696,12 @@ class BottleShip(bottle.Bottle):
         >>> app.require_auth('/hello', callback_success=lambda: "Hello, anonymous user!")
             <function BottleShip.require_auth.<locals>.decorator.<locals>.<lambda> at 0x0000000004C62840>
         '''
+        if not callback_success and 'callback' in config.keys():
+            callback_success = config.pop('callback')
         def decorator(callback):
             route_do = lambda **kwargs: self._authenticate(
                 callback_success=callback, callback_failure=callback_failure, **kwargs)
             return self.route(path, method, route_do, name, apply, skip, **config)
-        if not callback_success and 'callback' in kwargs.keys():
-            callback_success = kwargs.get('callback')
         return decorator(callback_success) if callback_success is not None else decorator
 
 def main(args):
