@@ -57,13 +57,6 @@ def data_is_encoded(data):
     datab = tob(data)
     return bool(datab.startswith(tob('!')) and tob('?') in datab)
 
-# Copy helper methods and globals from bottle module
-static_file = bottle.static_file
-redirect = bottle.redirect
-parse_auth = bottle.parse_auth
-request = bottle.request
-HTTPResponse = bottle.HTTPResponse
-
 class BottleShip(bottle.Bottle):
     '''
     Subclass of bottle.Bottle.
@@ -378,7 +371,7 @@ class BottleShip(bottle.Bottle):
         password = password or request_dict.get('Password', '')
         auth_header = bottle.request.get_header('Authorization')
         if auth_header: # If auth is available in the headers, take that
-            username, password = parse_auth(auth_header)
+            username, password = bottle.parse_auth(auth_header)
         error_msg = self._error_username_password(username, password)
         if error_msg:
             self._print(error_msg)
@@ -482,7 +475,7 @@ class BottleShip(bottle.Bottle):
         password = password or request_dict.get('Password', '')
         auth_header = bottle.request.get_header('Authorization')
         if auth_header: # If auth is available in the headers, take that
-            username, password = parse_auth(auth_header)
+            username, password = bottle.parse_auth(auth_header)
         error_msg = self._error_username_password(username, password)
         if error_msg:
             self._print(error_msg)
@@ -712,7 +705,7 @@ def main(args):
     args = parser.parse_args(args)
 
     bs = BottleShip()
-    bs.route('/', callback=lambda: static_file('login.html', root='examples'))
+    bs.route('/', callback=lambda: bottle.static_file('login.html', root='examples'))
     
     bs.route('/register', method=('GET', 'POST'), callback=bs.register)
     bs.route('/login', method=('GET', 'POST'), callback=bs.login)

@@ -30,3 +30,8 @@ History
 
 * Added logout() tests
 * Added callback_success fallback for callback parameter in require_auth()
+
+0.2.4 (2016-02-17)
+------------------
+
+* Dynamically import all public methods and classes from bottle
